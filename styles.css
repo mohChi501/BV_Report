@@ -1,0 +1,85 @@
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #ffffff;
+  color: #000000;
+  margin: 0;
+  padding: 20px;
+}
+
+header {
+  background-color: #00A36C;
+  color: white;
+  padding: 20px;
+  text-align: center;
+}
+
+.upload-section {
+  background: #f9f9f9;
+  border: 2px solid #00A36C;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 30px;
+}
+
+label {
+  display: block;
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+input[type="file"] {
+  margin-bottom: 15px;
+  width: 100%;
+}
+
+button {
+  background-color: #00A36C;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+button:hover {
+  background-color: #008f5e;
+}
+
+.card-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.card {
+  border: 1px solid #ccc;
+  border-left: 6px solid #00A36C;
+  padding: 15px;
+  border-radius: 8px;
+  background-color: #ffffff;
+  width: 300px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.table-section {
+  margin-top: 40px;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+}
+
+th {
+  background-color: #00A36C;
+  color: white;
+}
