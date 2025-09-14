@@ -2,33 +2,40 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>B-MohBel Card Usage Analysis</title>
+  <title>B-MohBel Card Usage Summary</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header>
-    <h1>B-MohBel Card Usage Analysis</h1>
+    <h1>B-MohBel Card Usage Summary</h1>
   </header>
 
   <section class="upload-section">
     <form id="uploadForm">
-      <label>BV Report</label>
+      <label for="bvReport">Upload BV Report (.csv or .xlsx)</label>
       <input type="file" id="bvReport" accept=".csv,.xlsx" required />
-      <label>Taab Card Register</label>
+
+      <label for="taabRegister">Upload Taab Card Register (.csv or .xlsx)</label>
       <input type="file" id="taabRegister" accept=".csv,.xlsx" required />
+
       <button type="submit">Generate Summary</button>
     </form>
   </section>
 
   <section id="overallSummary" class="bubble-summary"></section>
 
-  <section id="summaryTable" class="table-section"></section>
+  <section id="summaryTable" class="table-section">
+    <h2>Card-Level Summary</h2>
+  </section>
 
   <section id="incompleteTable" class="table-section">
     <h2>Incomplete Trips</h2>
   </section>
 
-  <button id="exportBtn">Export All as CSV</button>
+  <div class="export-button">
+    <button id="exportBtn">Export All as Excel</button>
+  </div>
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
   <script src="script.js"></script>
