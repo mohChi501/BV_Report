@@ -13,11 +13,29 @@
 
   <section class="upload-section">
     <form id="uploadForm">
-      <label for="bvReport">Upload BV Report (.csv or .xlsx)</label>
-      <input type="file" id="bvReport" accept=".csv,.xlsx" required />
+      <label for="bvReport">
+        Upload BV Report  
+        <small>(e.g. Ride Transaction Inquiry.xlsx)</small>
+      </label>
+      <input
+        type="file"
+        id="bvReport"
+        accept=".csv,.xlsx"
+        required
+        title="Select the BV Report file (e.g., Ride Transaction Inquiry.xlsx)"
+      />
 
-      <label for="taabRegister">Upload Taab Card Register (.csv or .xlsx)</label>
-      <input type="file" id="taabRegister" accept=".csv,.xlsx" required />
+      <label for="taabRegister">
+        Upload Taab Card Register  
+        <small>(e.g. taab_scan_log_2025-09-13T20-38-25-593Z.csv)</small>
+      </label>
+      <input
+        type="file"
+        id="taabRegister"
+        accept=".csv,.xlsx"
+        required
+        title="Select the Taab Card Register file (e.g., taab_scan_log_2025-09-13T20-38-25-593Z.csv)"
+      />
 
       <button type="submit">Generate Summary</button>
     </form>
