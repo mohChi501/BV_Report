@@ -106,8 +106,45 @@ document.getElementById('uploadForm').addEventListener('submit', async function 
 });
 
 async function parseFile(file) {
-  const data = await file.arrayBuffer();
-  const workbook = XLSX.read(data, { type: "array" });
+  const ext = file.name.split('.').pop().toLowerCase();
+  let workbook;
+
+  if (ext === 'csv') {
+    // 1. Read raw text
+    const text = await file.text();
+    const lines = text.split(/\r\n|\n/);
+
+    // 2. Define keywords that must appear in your header row
+    const headerKeywords = [
+      'card',     // covers Card No, Card ID
+      'fare',     // covers Fare, Deduction
+      'boarding', // covers Boarding time, Boarding station
+      'departure',// covers Departure time, Departure station
+      'operation' // covers Operation Date
+    ];
+
+    // 3. Find the first line containing ≥3 of those keywords
+    const headerIndex = lines.findIndex(line => {
+      const low = line.toLowerCase();
+      const matches = headerKeywords.filter(kw => low.includes(kw)).length;
+      return matches >= 3;
+    });
+
+    // 4. If nothing found, assume line 0; otherwise slice from header
+    const csvContent = lines
+      .slice(headerIndex >= 0 ? headerIndex : 0)
+      .join('\n');
+
+    // 5. Parse the cleaned CSV into a workbook
+    workbook = XLSX.read(csvContent, { type: 'string' });
+
+  } else {
+    // .xlsx fallback
+    const data = await file.arrayBuffer();
+    workbook = XLSX.read(data, { type: 'array' });
+  }
+
+  // Convert first sheet to JSON
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   return XLSX.utils.sheet_to_json(sheet);
 }
