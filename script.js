@@ -275,7 +275,7 @@ document.getElementById('exportBtn').addEventListener('click', () => {
   const incompleteSheet = XLSX.utils.aoa_to_sheet(incompleteRows);
   XLSX.utils.book_append_sheet(workbook, incompleteSheet, "Incomplete Trips");
 
-  // Sheet 3: Fare by Bus (Plate Number)
+  // Sheet 3: Fare by Bus
   const plateRows = [["Plate Number", "Trips", "Total Fare"]];
   Object.entries(plateSummary).forEach(([plate, data]) => {
     plateRows.push([plate, data.trips, data.fare.toFixed(2)]);
@@ -285,4 +285,3 @@ document.getElementById('exportBtn').addEventListener('click', () => {
 
   XLSX.writeFile(workbook, "B-MohBel_Usage_Summary.xlsx");
 });
-
