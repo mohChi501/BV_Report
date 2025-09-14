@@ -190,7 +190,7 @@ function renderBubbles(trips, fare, missed, categories, plates) {
   c.innerHTML = `
     <div class="bubble"><h3>Total Trips</h3><p>${trips}</p></div>
     <div class="bubble"><h3>Total Fare</h3><p>$${fare.toFixed(2)}</p></div>
-    <div class="bubble"><h3>Incomplete</h3><p>${missed}</p></div>
+    <div class="bubble"><h3>Incomplete Trips</h3><p>${missed}</p></div>
     ${Object.entries(categories).map(([cat,data])=>`
       <div class="bubble">
         <h3>${cat}</h3>
