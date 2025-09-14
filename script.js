@@ -4,7 +4,7 @@ let plateSummary = {};
 
 document.getElementById('uploadForm').addEventListener('submit', async function (e) {
   e.preventDefault();
-  
+
   const bvFile = document.getElementById('bvReport').files[0];
   const taabFile = document.getElementById('taabRegister').files[0];
 
