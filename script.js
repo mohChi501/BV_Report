@@ -19,8 +19,9 @@ document.getElementById('uploadForm').addEventListener('submit', async function 
 
   const taabLookup = {};
   taabData.forEach(entry => {
-    const cardId = entry[taabMap.cardId];
-    taabLookup[cardId] = entry;
+    const rawId = entry[taabMap.cardId];
+    const normalizedId = normalizeCardId(rawId);
+    taabLookup[normalizedId] = entry;
   });
 
   summary = {};
@@ -32,7 +33,8 @@ document.getElementById('uploadForm').addEventListener('submit', async function 
   let totalIncomplete = 0;
 
   bvData.forEach(entry => {
-    const cardNo = entry[bvMap.cardNo];
+    const rawCardNo = entry[bvMap.cardNo];
+    const cardNo = normalizeCardId(rawCardNo);
     const fare = parseFloat(entry[bvMap.fare]) || 0;
     const boarding = entry[bvMap.boardingTime];
     const departure = entry[bvMap.departureTime];
@@ -120,6 +122,12 @@ function buildHeaderMap(headers) {
 
   normalized.forEach((h, i) => {
     if (h.includes("cardno")) map.cardNo = headers[i];
+    if (h.includes("cardid")) map.cardId = headers[i];
+    if (h.includes("name")) map.name = headers[i];
+    if (h.includes("phone")) map.phone = headers[i];
+    if (h.includes("address")) map.address = headers[i];
+    if (h.includes("category")) map.category = headers[i];
+    if (h.includes("brandedcompany")) map.brandedCompany = headers[i];
     if (h.includes("fare")) map.fare = headers[i];
     if (h.includes("boardingtime")) map.boardingTime = headers[i];
     if (h.includes("departuretime")) map.departureTime = headers[i];
@@ -128,17 +136,13 @@ function buildHeaderMap(headers) {
     if (h.includes("platenumber")) map.plateNumber = headers[i];
     if (h.includes("routeid")) map.routeId = headers[i];
     if (h.includes("boardingstation")) map.boardingStation = headers[i];
-    if (h.includes("deduction")) map.deduction = headers[i];
-    if (h.includes("cardtype")) map.cardType = headers[i];
-    if (h.includes("cardid")) map.cardId = headers[i];
-    if (h.includes("name")) map.name = headers[i];
-    if (h.includes("phone")) map.phone = headers[i];
-    if (h.includes("address")) map.address = headers[i];
-    if (h.includes("category")) map.category = headers[i];
-    if (h.includes("brandedcompany")) map.brandedCompany = headers[i];
   });
 
   return map;
+}
+
+function normalizeCardId(id) {
+  return id ? id.toLowerCase().replace(/[^a-f0-9]/gi, '') : '';
 }
 
 function renderBubbles(trips, fare, missed, categories, plates) {
@@ -166,33 +170,51 @@ function renderBubbles(trips, fare, missed, categories, plates) {
 
 function renderTable(summary) {
   const section = document.getElementById('summaryTable');
+  section.innerHTML = '';
+
   const table = document.createElement('table');
   table.innerHTML = `
     <thead>
       <tr>
-        <th>Card No</th><th>Name</th><th>Phone</th><th>Address</th>
-        <th>Category</th><th>Company</th><th>Trips</th><th>Fare</th>
-        <th>Completed</th><th>Incomplete</th><th>Start</th><th>End</th>
+        <th>Card No</th>
+        <th>Name</th>
+        <th>Phone</th>
+        <th>Address</th>
+        <th>Category</th>
+        <th>Company</th>
+        <th>Trips</th>
+        <th>Fare</th>
+        <th>Completed</th>
+        <th>Incomplete</th>
+        <th>Start</th>
+        <th>End</th>
       </tr>
     </thead>
     <tbody>
       ${Object.entries(summary).map(([cardNo, card]) => `
         <tr>
-          <td>${cardNo}</td><td>${card.name}</td><td>${card.phone}</td><td>${card.address}</td>
-          <td>${card.category}</td><td>${card.company}</td><td>${card.trips}</td>
-          <td>$${card.fare.toFixed(2)}</td><td>${card.completed}</td><td>${card.incomplete}</td>
-          <td>${card.start}</td><td>${card.end}</td>
+          <td>${cardNo}</td>
+          <td>${card.name}</td>
+          <td>${card.phone}</td>
+          <td>${card.address}</td>
+          <td>${card.category}</td>
+          <td>${card.company}</td>
+          <td>${card.trips}</td>
+          <td>$${card.fare.toFixed(2)}</td>
+          <td>${card.completed}</td>
+          <td>${card.incomplete}</td>
+          <td>${card.start}</td>
+          <td>${card.end}</td>
         </tr>
       `).join('')}
     </tbody>
   `;
-  section.innerHTML = '';
   section.appendChild(table);
 }
 
 function renderIncompleteTable(incompleteTrips) {
   const section = document.getElementById('incompleteTable');
-  section.innerHTML = ''; // Clear previous content
+  section.innerHTML = '';
 
   const table = document.createElement('table');
   table.innerHTML = `
@@ -229,7 +251,7 @@ function renderIncompleteTable(incompleteTrips) {
 document.getElementById('exportBtn').addEventListener('click', () => {
   const workbook = XLSX.utils.book_new();
 
-  // Sheet 1: Full Card Summary
+  // Sheet 1: Card Summary
   const cardRows = [["Card No", "Name", "Phone", "Address", "Category", "Company", "Trips", "Fare", "Completed", "Incomplete", "Start", "End"]];
   Object.entries(summary).forEach(([cardNo, card]) => {
     cardRows.push([
@@ -253,7 +275,7 @@ document.getElementById('exportBtn').addEventListener('click', () => {
   const incompleteSheet = XLSX.utils.aoa_to_sheet(incompleteRows);
   XLSX.utils.book_append_sheet(workbook, incompleteSheet, "Incomplete Trips");
 
-  // Sheet 3: Fare by Plate Number
+  // Sheet 3: Fare by Bus (Plate Number)
   const plateRows = [["Plate Number", "Trips", "Total Fare"]];
   Object.entries(plateSummary).forEach(([plate, data]) => {
     plateRows.push([plate, data.trips, data.fare.toFixed(2)]);
@@ -263,3 +285,4 @@ document.getElementById('exportBtn').addEventListener('click', () => {
 
   XLSX.writeFile(workbook, "B-MohBel_Usage_Summary.xlsx");
 });
+
