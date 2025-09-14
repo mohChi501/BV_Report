@@ -11,8 +11,8 @@ document.getElementById('uploadForm').addEventListener('submit', async function 
   const bvData = await parseFile(bvFile);
   const taabData = await parseFile(taabFile);
 
-  const bvHeaders = Object.keys(bvData[0]);
-  const taabHeaders = Object.keys(taabData[0]);
+  const bvHeaders = Object.keys(bvData[0] || {});
+  const taabHeaders = Object.keys(taabData[0] || {});
 
   const bvMap = buildHeaderMap(bvHeaders);
   const taabMap = buildHeaderMap(taabHeaders);
@@ -24,6 +24,7 @@ document.getElementById('uploadForm').addEventListener('submit', async function 
     taabLookup[normalizedId] = entry;
   });
 
+  // Reset summaries
   summary = {};
   incompleteTrips = [];
   plateSummary = {};
@@ -63,16 +64,16 @@ document.getElementById('uploadForm').addEventListener('submit', async function 
     }
 
     const card = summary[cardNo];
-    card.trips += 1;
+    card.trips++;
     card.fare += fare;
     card.dates.add(date);
     totalFare += fare;
-    totalTrips += 1;
+    totalTrips++;
 
     const isIncomplete = toFro === "2" || (!departure && boarding);
     if (isIncomplete) {
-      card.incomplete += 1;
-      totalIncomplete += 1;
+      card.incomplete++;
+      totalIncomplete++;
       incompleteTrips.push({
         cardNo,
         name: card.name,
@@ -84,20 +85,22 @@ document.getElementById('uploadForm').addEventListener('submit', async function 
         station
       });
     } else {
-      card.completed += 1;
+      card.completed++;
     }
 
     if (boarding && (!card.start || boarding < card.start)) card.start = boarding;
     if (departure && (!card.end || departure > card.end)) card.end = departure;
 
+    // Category summary
     const cat = card.category;
     if (!categorySummary[cat]) categorySummary[cat] = { trips: 0, fare: 0 };
-    categorySummary[cat].trips += 1;
+    categorySummary[cat].trips++;
     categorySummary[cat].fare += fare;
 
-    if (!plateSummary[plate]) plateSummary[plate] = { fare: 0, trips: 0 };
+    // Plate summary
+    if (!plateSummary[plate]) plateSummary[plate] = { trips: 0, fare: 0 };
+    plateSummary[plate].trips++;
     plateSummary[plate].fare += fare;
-    plateSummary[plate].trips += 1;
   });
 
   renderBubbles(totalTrips, totalFare, totalIncomplete, categorySummary, plateSummary);
@@ -105,49 +108,49 @@ document.getElementById('uploadForm').addEventListener('submit', async function 
   renderIncompleteTable(incompleteTrips);
 });
 
+
+/**
+ * Parses .csv or .xlsx, auto-locating the real header row.
+ */
 async function parseFile(file) {
   const ext = file.name.split('.').pop().toLowerCase();
   let workbook;
 
+  // Read workbook
   if (ext === 'csv') {
-    // 1. Read raw text
     const text = await file.text();
-    const lines = text.split(/\r\n|\n/);
-
-    // 2. Define keywords that must appear in your header row
-    const headerKeywords = [
-      'card',     // covers Card No, Card ID
-      'fare',     // covers Fare, Deduction
-      'boarding', // covers Boarding time, Boarding station
-      'departure',// covers Departure time, Departure station
-      'operation' // covers Operation Date
-    ];
-
-    // 3. Find the first line containing ≥3 of those keywords
-    const headerIndex = lines.findIndex(line => {
-      const low = line.toLowerCase();
-      const matches = headerKeywords.filter(kw => low.includes(kw)).length;
-      return matches >= 3;
-    });
-
-    // 4. If nothing found, assume line 0; otherwise slice from header
-    const csvContent = lines
-      .slice(headerIndex >= 0 ? headerIndex : 0)
-      .join('\n');
-
-    // 5. Parse the cleaned CSV into a workbook
-    workbook = XLSX.read(csvContent, { type: 'string' });
-
+    workbook = XLSX.read(text, { type: 'string' });
   } else {
-    // .xlsx fallback
     const data = await file.arrayBuffer();
     workbook = XLSX.read(data, { type: 'array' });
   }
 
-  // Convert first sheet to JSON
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  return XLSX.utils.sheet_to_json(sheet);
+  // Get all rows as arrays
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false });
+
+  // Identify header row (must contain card + fare + boarding)
+  const headerIdx = rows.findIndex(r => {
+    const cells = r.map(c => (c||'').toString().toLowerCase());
+    return cells.some(c => c.includes('card')) &&
+           cells.some(c => c.includes('fare')) &&
+           cells.some(c => c.includes('boarding'));
+  });
+
+  // If we found it, slice below; otherwise fallback to default JSON
+  if (headerIdx >= 0) {
+    const header = rows[headerIdx];
+    const dataRows = rows.slice(headerIdx + 1);
+    return dataRows.map(r => {
+      const obj = {};
+      header.forEach((h, i) => { obj[h] = r[i]; });
+      return obj;
+    });
+  } else {
+    return XLSX.utils.sheet_to_json(sheet);
+  }
 }
+
 
 function normalizeHeaders(headers) {
   return headers.map(h => h.trim().toLowerCase().replace(/[\s_]+/g, ''));
@@ -158,167 +161,117 @@ function buildHeaderMap(headers) {
   const map = {};
 
   normalized.forEach((h, i) => {
-    if (h.includes("cardno")) map.cardNo = headers[i];
-    if (h.includes("cardid")) map.cardId = headers[i];
-    if (h.includes("name")) map.name = headers[i];
-    if (h.includes("phone")) map.phone = headers[i];
-    if (h.includes("address")) map.address = headers[i];
-    if (h.includes("category")) map.category = headers[i];
-    if (h.includes("brandedcompany")) map.brandedCompany = headers[i];
-    if (h.includes("fare")) map.fare = headers[i];
-    if (h.includes("boardingtime")) map.boardingTime = headers[i];
-    if (h.includes("departuretime")) map.departureTime = headers[i];
-    if (h.includes("operationdate")) map.operationDate = headers[i];
-    if (h.includes("tofro")) map.toFro = headers[i];
-    if (h.includes("platenumber")) map.plateNumber = headers[i];
-    if (h.includes("routeid")) map.routeId = headers[i];
-    if (h.includes("boardingstation")) map.boardingStation = headers[i];
+    if (h.includes("cardno"))         map.cardNo        = headers[i];
+    if (h.includes("cardid"))         map.cardId        = headers[i];
+    if (h.includes("name"))           map.name          = headers[i];
+    if (h.includes("phone"))          map.phone         = headers[i];
+    if (h.includes("address"))        map.address       = headers[i];
+    if (h.includes("category"))       map.category      = headers[i];
+    if (h.includes("brandedcompany")) map.brandedCompany= headers[i];
+    if (h.includes("fare"))           map.fare          = headers[i];
+    if (h.includes("boardingtime"))   map.boardingTime  = headers[i];
+    if (h.includes("departuretime"))  map.departureTime = headers[i];
+    if (h.includes("operationdate"))  map.operationDate = headers[i];
+    if (h.includes("tofro"))          map.toFro         = headers[i];
+    if (h.includes("platenumber"))    map.plateNumber   = headers[i];
+    if (h.includes("routeid"))        map.routeId       = headers[i];
+    if (h.includes("boardingstation"))map.boardingStation= headers[i];
   });
 
   return map;
 }
 
 function normalizeCardId(id) {
-  return id ? id.toLowerCase().replace(/[^a-f0-9]/gi, '') : '';
+  return id ? id.toString().toLowerCase().replace(/[^a-f0-9]/gi, '') : '';
 }
 
 function renderBubbles(trips, fare, missed, categories, plates) {
-  const container = document.getElementById('overallSummary');
-  container.innerHTML = `
+  const c = document.getElementById('overallSummary');
+  c.innerHTML = `
     <div class="bubble"><h3>Total Trips</h3><p>${trips}</p></div>
     <div class="bubble"><h3>Total Fare</h3><p>$${fare.toFixed(2)}</p></div>
-    <div class="bubble"><h3>Incomplete Trips</h3><p>${missed}</p></div>
-    ${Object.entries(categories).map(([cat, data]) => `
+    <div class="bubble"><h3>Incomplete</h3><p>${missed}</p></div>
+    ${Object.entries(categories).map(([cat,data])=>`
       <div class="bubble">
         <h3>${cat}</h3>
         <p>Trips: ${data.trips}</p>
         <p>Fare: $${data.fare.toFixed(2)}</p>
-      </div>
-    `).join('')}
-    ${Object.entries(plates).map(([plate, data]) => `
+      </div>`).join('')}
+    ${Object.entries(plates).map(([pl,data])=>`
       <div class="bubble">
-        <h3>Bus ${plate}</h3>
+        <h3>Bus ${pl}</h3>
         <p>Trips: ${data.trips}</p>
         <p>Fare: $${data.fare.toFixed(2)}</p>
-      </div>
-    `).join('')}
+      </div>`).join('')}
   `;
 }
 
 function renderTable(summary) {
-  const section = document.getElementById('summaryTable');
-  section.innerHTML = '';
-
-  const table = document.createElement('table');
-  table.innerHTML = `
-    <thead>
-      <tr>
-        <th>Card No</th>
-        <th>Name</th>
-        <th>Phone</th>
-        <th>Address</th>
-        <th>Category</th>
-        <th>Company</th>
-        <th>Trips</th>
-        <th>Fare</th>
-        <th>Completed</th>
-        <th>Incomplete</th>
-        <th>Start</th>
-        <th>End</th>
-      </tr>
-    </thead>
+  const sec = document.getElementById('summaryTable');
+  sec.innerHTML = '';
+  const tbl = document.createElement('table');
+  tbl.innerHTML = `
+    <thead><tr>
+      <th>Card No</th><th>Name</th><th>Phone</th><th>Address</th>
+      <th>Category</th><th>Company</th><th>Trips</th><th>Fare</th>
+      <th>Completed</th><th>Incomplete</th><th>Start</th><th>End</th>
+    </tr></thead>
     <tbody>
-      ${Object.entries(summary).map(([cardNo, card]) => `
-        <tr>
-          <td>${cardNo}</td>
-          <td>${card.name}</td>
-          <td>${card.phone}</td>
-          <td>${card.address}</td>
-          <td>${card.category}</td>
-          <td>${card.company}</td>
-          <td>${card.trips}</td>
-          <td>$${card.fare.toFixed(2)}</td>
-          <td>${card.completed}</td>
-          <td>${card.incomplete}</td>
-          <td>${card.start}</td>
-          <td>${card.end}</td>
-        </tr>
-      `).join('')}
-    </tbody>
-  `;
-  section.appendChild(table);
+      ${Object.entries(summary).map(([cn,cd])=>`
+      <tr>
+        <td>${cn}</td><td>${cd.name}</td><td>${cd.phone}</td><td>${cd.address}</td>
+        <td>${cd.category}</td><td>${cd.company}</td><td>${cd.trips}</td>
+        <td>$${cd.fare.toFixed(2)}</td><td>${cd.completed}</td><td>${cd.incomplete}</td>
+        <td>${cd.start}</td><td>${cd.end}</td>
+      </tr>`).join('')}
+    </tbody>`;
+  sec.appendChild(tbl);
 }
 
 function renderIncompleteTable(incompleteTrips) {
-  const section = document.getElementById('incompleteTable');
-  section.innerHTML = '';
-
-  const table = document.createElement('table');
-  table.innerHTML = `
-    <thead>
-      <tr>
-        <th>Card No</th>
-        <th>Name</th>
-        <th>Operation Date</th>
-        <th>Boarding Time</th>
-        <th>Departure Time</th>
-        <th>Plate Number</th>
-        <th>Route ID</th>
-        <th>Boarding Station</th>
-      </tr>
-    </thead>
+  const sec = document.getElementById('incompleteTable');
+  sec.innerHTML = '';
+  const tbl = document.createElement('table');
+  tbl.innerHTML = `
+    <thead><tr>
+      <th>Card No</th><th>Name</th><th>Date</th>
+      <th>Boarding</th><th>Departure</th>
+      <th>Plate</th><th>Route</th><th>Station</th>
+    </tr></thead>
     <tbody>
-      ${incompleteTrips.map(trip => `
-        <tr>
-          <td>${trip.cardNo}</td>
-          <td>${trip.name}</td>
-          <td>${trip.date}</td>
-          <td>${trip.boarding}</td>
-          <td>${trip.departure || '—'}</td>
-          <td>${trip.plate}</td>
-          <td>${trip.route}</td>
-          <td>${trip.station}</td>
-        </tr>
-      `).join('')}
-    </tbody>
-  `;
-  section.appendChild(table);
+      ${incompleteTrips.map(t=>`
+      <tr>
+        <td>${t.cardNo}</td><td>${t.name}</td><td>${t.date}</td>
+        <td>${t.boarding}</td><td>${t.departure||'—'}</td>
+        <td>${t.plate}</td><td>${t.route}</td><td>${t.station}</td>
+      </tr>`).join('')}
+    </tbody>`;
+  sec.appendChild(tbl);
 }
 
 document.getElementById('exportBtn').addEventListener('click', () => {
-  const workbook = XLSX.utils.book_new();
+  const wb = XLSX.utils.book_new();
 
-  // Sheet 1: Card Summary
-  const cardRows = [["Card No", "Name", "Phone", "Address", "Category", "Company", "Trips", "Fare", "Completed", "Incomplete", "Start", "End"]];
-  Object.entries(summary).forEach(([cardNo, card]) => {
-    cardRows.push([
-      cardNo, card.name, card.phone, card.address,
-      card.category, card.company, card.trips,
-      card.fare.toFixed(2), card.completed, card.incomplete,
-      card.start, card.end
-    ]);
+  // Card Summary
+  const cards = [["Card No","Name","Phone","Address","Category","Company","Trips","Fare","Completed","Incomplete","Start","End"]];
+  Object.entries(summary).forEach(([cn,cd])=>{
+    cards.push([cn,cd.name,cd.phone,cd.address,cd.category,cd.company,cd.trips,cd.fare.toFixed(2),cd.completed,cd.incomplete,cd.start,cd.end]);
   });
-  const cardSheet = XLSX.utils.aoa_to_sheet(cardRows);
-  XLSX.utils.book_append_sheet(workbook, cardSheet, "Card Summary");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cards), "Card Summary");
 
-  // Sheet 2: Incomplete Trips
-  const incompleteRows = [["Card No", "Name", "Operation Date", "Boarding Time", "Departure Time", "Plate Number", "Route ID", "Boarding Station"]];
-  incompleteTrips.forEach(trip => {
-    incompleteRows.push([
-      trip.cardNo, trip.name, trip.date, trip.boarding,
-      trip.departure || '', trip.plate, trip.route, trip.station
-    ]);
+  // Incomplete Trips
+  const inc = [["Card No","Name","Date","Boarding","Departure","Plate","Route","Station"]];
+  incompleteTrips.forEach(t=>{
+    inc.push([t.cardNo,t.name,t.date,t.boarding,t.departure||'',t.plate,t.route,t.station]);
   });
-  const incompleteSheet = XLSX.utils.aoa_to_sheet(incompleteRows);
-  XLSX.utils.book_append_sheet(workbook, incompleteSheet, "Incomplete Trips");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(inc), "Incomplete Trips");
 
-  // Sheet 3: Fare by Bus
-  const plateRows = [["Plate Number", "Trips", "Total Fare"]];
-  Object.entries(plateSummary).forEach(([plate, data]) => {
-    plateRows.push([plate, data.trips, data.fare.toFixed(2)]);
+  // Fare by Bus
+  const bus = [["Plate","Trips","Fare"]];
+  Object.entries(plateSummary).forEach(([pl,data])=>{
+    bus.push([pl,data.trips,data.fare.toFixed(2)]);
   });
-  const plateSheet = XLSX.utils.aoa_to_sheet(plateRows);
-  XLSX.utils.book_append_sheet(workbook, plateSheet, "Fare by Bus");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(bus), "Fare by Bus");
 
-  XLSX.writeFile(workbook, "B-MohBel_Usage_Summary.xlsx");
+  XLSX.writeFile(wb, "B-MohBel_Usage_Summary.xlsx");
 });
