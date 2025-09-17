@@ -78,6 +78,7 @@ document.getElementById('uploadForm').addEventListener('submit', async function 
       incompleteTrips.push({
         cardNo,
         name: card.name,
+        category: card.category,
         date,
         boarding,
         departure,
@@ -164,8 +165,6 @@ async function parseFile(file) {
   }
 }
 
-
-
 function normalizeHeaders(headers) {
   return headers.map(h => h.trim().toLowerCase().replace(/[\s_]+/g, ''));
 }
@@ -251,12 +250,12 @@ function renderIncompleteTable(incompleteTrips) {
     <thead><tr>
       <th>Card No</th><th>Name</th><th>Category</th><th>Date</th>
       <th>Boarding</th><th>Departure</th>
-      <th>Plate</th><th>Route</th><th>Station</th>
+      <th>Plate</th><th>Route</th><th>Boarding Station</th>
     </tr></thead>
     <tbody>
       ${incompleteTrips.map(t=>`
       <tr>
-        <td>${t.cardNo}</td><td>${t.name}</td><td>${summary[trip.cardNo]?.category || ''}</td><td>${t.date}</td>
+        <td>${t.cardNo}</td><td>${t.name}</td><td>{t.category}</td><td>${t.date}</td>
         <td>${t.boarding}</td><td>${t.departure||'—'}</td>
         <td>${t.plate}</td><td>${t.route}</td><td>${t.station}</td>
       </tr>`).join('')}
@@ -264,29 +263,60 @@ function renderIncompleteTable(incompleteTrips) {
   sec.appendChild(tbl);
 }
 
-document.getElementById('exportBtn').addEventListener('click', () => {
+function exportToExcel() {
   const wb = XLSX.utils.book_new();
 
   // Card Summary
   const cards = [["Card No","Name","Phone","Address","Category","Institution","Trips","Fare","Completed","Incomplete","Start","End"]];
-  Object.entries(summary).forEach(([cn,cd])=>{
-    cards.push([cn,cd.name,cd.phone,cd.address,cd.category,cd.institution,cd.trips,cd.fare.toFixed(2),cd.completed,cd.incomplete,cd.start,cd.end]);
+  Object.entries(summary).forEach(([cn, cd]) => {
+    cards.push([
+      cn,
+      cd.name,
+      cd.phone,
+      cd.address,
+      cd.category,
+      cd.institution,
+      cd.trips,
+      cd.fare.toFixed(2),
+      cd.completed,
+      cd.incomplete,
+      cd.start,
+      cd.end
+    ]);
   });
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cards), "Card Summary");
 
   // Incomplete Trips
   const inc = [["Card No","Name","Date","Boarding","Departure","Plate","Route","Station"]];
-  incompleteTrips.forEach(t=>{
-    inc.push([t.cardNo,t.name,t.date,t.boarding,t.departure||'',t.plate,t.route,t.station]);
+  incompleteTrips.forEach(t => {
+    inc.push([
+      t.cardNo,
+      t.name,
+      t.date,
+      t.boarding,
+      t.departure || '',
+      t.plate,
+      t.route,
+      t.station
+    ]);
   });
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(inc), "Incomplete Trips");
 
   // Fare by Bus
   const bus = [["Plate","Trips","Fare"]];
-  Object.entries(plateSummary).forEach(([pl,data])=>{
-    bus.push([pl,data.trips,data.fare.toFixed(2)]);
+  Object.entries(plateSummary).forEach(([pl, data]) => {
+    bus.push([
+      pl,
+      data.trips,
+      data.fare.toFixed(2)
+    ]);
   });
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(bus), "Fare by Bus");
 
+  // Save file
   XLSX.writeFile(wb, "B-MohBel_Usage_Summary.xlsx");
-});
+}
+
+// Bind export button
+document.getElementById('exportBtn').addEventListener('click', exportToExcel);
+
