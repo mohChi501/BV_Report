@@ -44,6 +44,7 @@ document.getElementById('uploadForm').addEventListener('submit', async function 
     const plate = entry[bvMap.plateNumber];
     const route = entry[bvMap.routeId];
     const station = entry[bvMap.boardingStation];
+    const cardType = entry[bvMap.cardType] || '';
 
     if (!summary[cardNo]) {
       const tag = taabLookup[cardNo] || {};
@@ -51,7 +52,7 @@ document.getElementById('uploadForm').addEventListener('submit', async function 
         name: tag[taabMap.name] || "",
         phone: tag[taabMap.phone] || "",
         address: tag[taabMap.address] || "",
-        category: tag[taabMap.category] || `Unregistered ${entry[bvMap.cardType] || ''}`,
+        category: tag[taabMap.category] || `Unregistered ${cardType}`,
         institution: tag[taabMap.brandedInstitution] || "Unknown",
         trips: 0,
         fare: 0,
@@ -248,14 +249,14 @@ function renderIncompleteTable(incompleteTrips) {
   const tbl = document.createElement('table');
   tbl.innerHTML = `
     <thead><tr>
-      <th>Card No</th><th>Name</th><th>Date</th>
+      <th>Card No</th><th>Name</th><th>Category</th><th>Date</th>
       <th>Boarding</th><th>Departure</th>
       <th>Plate</th><th>Route</th><th>Station</th>
     </tr></thead>
     <tbody>
       ${incompleteTrips.map(t=>`
       <tr>
-        <td>${t.cardNo}</td><td>${t.name}</td><td>${t.date}</td>
+        <td>${t.cardNo}</td><td>${t.name}</td><td>${summary[trip.cardNo]?.category || ''}</td><td>${t.date}</td>
         <td>${t.boarding}</td><td>${t.departure||'—'}</td>
         <td>${t.plate}</td><td>${t.route}</td><td>${t.station}</td>
       </tr>`).join('')}
