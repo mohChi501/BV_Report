@@ -52,7 +52,7 @@ document.getElementById('uploadForm').addEventListener('submit', async function 
         phone: tag[taabMap.phone] || "",
         address: tag[taabMap.address] || "",
         category: tag[taabMap.category] || "Unregistered",
-        company: tag[taabMap.brandedCompany] || "Unknown",
+        institution: tag[taabMap.brandedInstitution] || "Unknown",
         trips: 0,
         fare: 0,
         completed: 0,
@@ -126,18 +126,29 @@ async function parseFile(file) {
   }
 
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  // Get all rows as arrays
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false });
 
-  // Identify header row (must contain card + fare + boarding)
+  // Decide which keyword set to use based on filename
+  const isBV = /bv|transaction|ride/i.test(file.name);
+  const isTaab = /taab|register|scan/i.test(file.name);
+
+  let headerKeywords = [];
+  if (isBV) {
+    headerKeywords = ['card', 'fare', 'boarding', 'departure', 'operation'];
+  } else if (isTaab) {
+    headerKeywords = ['cardid', 'name', 'phone', 'category', 'brandedinstitution'];
+  } else {
+    // Fallback: combine both sets
+    headerKeywords = ['card', 'fare', 'boarding', 'departure', 'operation', 'name', 'phone', 'category', 'brandedinstitution'];
+  }
+
+  // Find the first row containing at least 3 of the keywords
   const headerIdx = rows.findIndex(r => {
-    const cells = r.map(c => (c||'').toString().toLowerCase());
-    return cells.some(c => c.includes('card')) &&
-           cells.some(c => c.includes('fare')) &&
-           cells.some(c => c.includes('boarding'));
+    const cells = r.map(c => (c || '').toString().toLowerCase());
+    const matches = headerKeywords.filter(kw => cells.some(c => c.includes(kw))).length;
+    return matches >= 3;
   });
 
-  // If we found it, slice below; otherwise fallback to default JSON
   if (headerIdx >= 0) {
     const header = rows[headerIdx];
     const dataRows = rows.slice(headerIdx + 1);
@@ -147,9 +158,11 @@ async function parseFile(file) {
       return obj;
     });
   } else {
+    // Fallback: normal parsing
     return XLSX.utils.sheet_to_json(sheet);
   }
 }
+
 
 
 function normalizeHeaders(headers) {
@@ -167,7 +180,7 @@ function buildHeaderMap(headers) {
     if (h.includes("phone"))          map.phone         = headers[i];
     if (h.includes("address"))        map.address       = headers[i];
     if (h.includes("category"))       map.category      = headers[i];
-    if (h.includes("brandedcompany")) map.brandedCompany= headers[i];
+    if (h.includes("brandedinstitution")) map.brandedInstitution= headers[i];
     if (h.includes("fare"))           map.fare          = headers[i];
     if (h.includes("boardingtime"))   map.boardingTime  = headers[i];
     if (h.includes("departuretime"))  map.departureTime = headers[i];
@@ -213,14 +226,14 @@ function renderTable(summary) {
   tbl.innerHTML = `
     <thead><tr>
       <th>Card No</th><th>Name</th><th>Phone</th><th>Address</th>
-      <th>Category</th><th>Company</th><th>Trips</th><th>Fare</th>
+      <th>Category</th><th>Institution</th><th>Trips</th><th>Fare</th>
       <th>Completed</th><th>Incomplete</th><th>Start</th><th>End</th>
     </tr></thead>
     <tbody>
       ${Object.entries(summary).map(([cn,cd])=>`
       <tr>
         <td>${cn}</td><td>${cd.name}</td><td>${cd.phone}</td><td>${cd.address}</td>
-        <td>${cd.category}</td><td>${cd.company}</td><td>${cd.trips}</td>
+        <td>${cd.category}</td><td>${cd.institution}</td><td>${cd.trips}</td>
         <td>$${cd.fare.toFixed(2)}</td><td>${cd.completed}</td><td>${cd.incomplete}</td>
         <td>${cd.start}</td><td>${cd.end}</td>
       </tr>`).join('')}
@@ -253,9 +266,9 @@ document.getElementById('exportBtn').addEventListener('click', () => {
   const wb = XLSX.utils.book_new();
 
   // Card Summary
-  const cards = [["Card No","Name","Phone","Address","Category","Company","Trips","Fare","Completed","Incomplete","Start","End"]];
+  const cards = [["Card No","Name","Phone","Address","Category","Institution","Trips","Fare","Completed","Incomplete","Start","End"]];
   Object.entries(summary).forEach(([cn,cd])=>{
-    cards.push([cn,cd.name,cd.phone,cd.address,cd.category,cd.company,cd.trips,cd.fare.toFixed(2),cd.completed,cd.incomplete,cd.start,cd.end]);
+    cards.push([cn,cd.name,cd.phone,cd.address,cd.category,cd.institution,cd.trips,cd.fare.toFixed(2),cd.completed,cd.incomplete,cd.start,cd.end]);
   });
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cards), "Card Summary");
 
