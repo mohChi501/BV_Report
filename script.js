@@ -51,7 +51,7 @@ document.getElementById('uploadForm').addEventListener('submit', async function 
         name: tag[taabMap.name] || "",
         phone: tag[taabMap.phone] || "",
         address: tag[taabMap.address] || "",
-        category: tag[taabMap.category] || "Unregistered",
+        category: tag[taabMap.category] || `Unregistered ${entry[bvMap.cardType] || ''}`,
         institution: tag[taabMap.brandedInstitution] || "Unknown",
         trips: 0,
         fare: 0,
@@ -134,7 +134,7 @@ async function parseFile(file) {
 
   let headerKeywords = [];
   if (isBV) {
-    headerKeywords = ['card', 'fare', 'boarding', 'departure', 'operation'];
+    headerKeywords = ['card', 'fare', 'boarding', 'departure', 'operation', 'cardtype'];
   } else if (isTaab) {
     headerKeywords = ['cardid', 'name', 'phone', 'category', 'brandedinstitution'];
   } else {
@@ -175,6 +175,7 @@ function buildHeaderMap(headers) {
 
   normalized.forEach((h, i) => {
     if (h.includes("cardno"))         map.cardNo        = headers[i];
+    if (h.includes("cardtype"))       map.cardType      = headers[i];
     if (h.includes("cardid"))         map.cardId        = headers[i];
     if (h.includes("name"))           map.name          = headers[i];
     if (h.includes("phone"))          map.phone         = headers[i];
