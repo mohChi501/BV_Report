@@ -263,7 +263,7 @@ function renderIncompleteTable(incompleteTrips) {
       <tr>
         <td>${t.cardNo}</td>
         <td>${t.name}</td>
-        <td>${t.category}</td>
+        <td>${t.category}</td>//
         <td>${t.date}</td>
         <td>${t.boarding}</td>
         <td>${t.departure||'—'}</td>
