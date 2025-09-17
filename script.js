@@ -221,7 +221,7 @@ function renderBubbles(trips, fare, missed, categories, plates) {
 
 function renderTable(summary) {
   const sec = document.getElementById('summaryTable');
-  sec.innerHTML = '';
+  sec.innerHTML = '<h2>Card‑Level Summary</h2>'; // keep the title
   const tbl = document.createElement('table');
   tbl.innerHTML = `
     <thead><tr>
@@ -243,7 +243,7 @@ function renderTable(summary) {
 
 function renderIncompleteTable(incompleteTrips) {
   const sec = document.getElementById('incompleteTable');
-  sec.innerHTML = '';
+  sec.innerHTML = '<h2>Incomplete Trips</h2>'; // keep the title
   const tbl = document.createElement('table');
   tbl.innerHTML = `
     <thead><tr>
