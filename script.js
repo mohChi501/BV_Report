@@ -248,16 +248,28 @@ function renderIncompleteTable(incompleteTrips) {
   const tbl = document.createElement('table');
   tbl.innerHTML = `
     <thead><tr>
-      <th>Card No</th><th>Name</th><th>Category</th><th>Date</th>
-      <th>Boarding</th><th>Departure</th>
-      <th>Plate</th><th>Route</th><th>Boarding Station</th>
+      <th>Card No</th>
+      <th>Name</th>
+      <th>Category</th>
+      <th>Date</th>
+      <th>Boarding</th>
+      <th>Departure</th>
+      <th>Plate</th>
+      <th>Route</th>
+      <th>Boarding Station</th>
     </tr></thead>
     <tbody>
       ${incompleteTrips.map(t=>`
       <tr>
-        <td>${t.cardNo}</td><td>${t.name}</td><td>{t.category}</td><td>${t.date}</td>
-        <td>${t.boarding}</td><td>${t.departure||'—'}</td>
-        <td>${t.plate}</td><td>${t.route}</td><td>${t.station}</td>
+        <td>${t.cardNo}</td>
+        <td>${t.name}</td>
+        <td>${t.category}</td>
+        <td>${t.date}</td>
+        <td>${t.boarding}</td>
+        <td>${t.departure||'—'}</td>
+        <td>${t.plate}</td>
+        <td>${t.route}</td>
+        <td>${t.station}</td>
       </tr>`).join('')}
     </tbody>`;
   sec.appendChild(tbl);
